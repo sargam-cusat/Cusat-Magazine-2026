@@ -28,21 +28,10 @@ function Book() {
     return `${BASE_IMAGE_PATH}${zeroBasedNumber}.jpg`;
   }, []);
 
-  // Get filtered pages for mobile (skip pages 1 and 3)
+  // Get all pages for both mobile and desktop
   const getFilteredPages = useCallback(() => {
-    if (!isMobile) {
-      return Array.from(new Array(TOTAL_PAGES), (el, index) => index + 1);
-    }
-    
-    // For mobile, create array excluding pages 1 and 3
-    const pages = [];
-    for (let i = 1; i <= TOTAL_PAGES; i++) {
-      if (i !== 1 && i !== 3) {
-        pages.push(i);
-      }
-    }
-    return pages;
-  }, [isMobile]);
+    return Array.from(new Array(TOTAL_PAGES), (el, index) => index + 1);
+  }, []);
 
   // 5-second Kavaru loading screen
   useEffect(() => {
@@ -62,10 +51,14 @@ function Book() {
       // Calculate dimensions based on available space
       if (mobile) {
         const availableWidth = window.innerWidth;
-        const availableHeight = window.innerHeight - 150; // Account for header and bottom bar
+        const headerHeight = 60; // Fixed header height
+        const bottomBarHeight = 65; // Bottom navigation bar height
+        const availableHeight = window.innerHeight - headerHeight - bottomBarHeight;
         
-        // Use A4 ratio (1:1.414) but fit to screen
-        const heightFromWidth = availableWidth * 1.414;
+        // For two-page layout, each page should be half width
+        // Use A4 ratio (1:1.414) for page height
+        const pageWidth = availableWidth / 2;
+        const heightFromWidth = pageWidth * 1.414;
         
         if (heightFromWidth <= availableHeight) {
           // Width is the limiting factor
@@ -75,8 +68,9 @@ function Book() {
           });
         } else {
           // Height is the limiting factor
+          const pageWidthFromHeight = availableHeight / 1.414;
           setDimensions({
-            width: availableHeight / 1.414,
+            width: pageWidthFromHeight * 2,
             height: availableHeight
           });
         }
@@ -567,25 +561,33 @@ function Book() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        justifyContent: isMobile ? 'center' : 'flex-start',
         width: '100%',
         maxWidth: isMobile ? '100%' : '900px',
         height: isMobile ? '100vh' : 'auto',
-        paddingBottom: isMobile ? '60px' : '0'
+        paddingBottom: isMobile ? '60px' : '0',
+        flex: isMobile ? '1' : 'initial',
+        paddingTop: isMobile ? '60px' : '0'
       }}>
         {/* Header with university logos */}
         <div style={{
           display: 'flex',
-          justifyContent: 'center',
+          justifyContent: 'space-between',
           alignItems: 'center',
           width: '100%',
-          padding: isMobile ? '10px 12px' : '20px 30px',
+          padding: isMobile ? '8px 12px' : '20px 30px',
           backgroundColor: 'white',
           borderBottom: '2px solid #f0f0f0',
-          marginBottom: isMobile ? '5px' : '20px',
+          marginBottom: isMobile ? '0' : '20px',
           flexShrink: 0,
-          gap: isMobile ? '20px' : '40px'
+          position: isMobile ? 'fixed' : 'relative',
+          top: isMobile ? '0' : 'auto',
+          left: isMobile ? '0' : 'auto',
+          right: isMobile ? '0' : 'auto',
+          zIndex: isMobile ? 100 : 'auto',
+          boxShadow: isMobile ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
         }}>
-          {/* Cochin University Logo */}
+          {/* Cochin University Logo - Left */}
           <img 
             src="/University logo.png"
             alt="Cochin University Logo"
@@ -603,11 +605,14 @@ function Book() {
             style={{
               width: 'auto',
               height: isMobile ? '45px' : '70px',
-              objectFit: 'contain'
+              objectFit: 'contain',
+              position: 'absolute',
+              left: '50%',
+              transform: 'translateX(-50%)'
             }}
           />
           
-          {/* Students Union Logo */}
+          {/* Students Union Logo - Right */}
           <img 
             src="/union logo.png"
             alt="Students Union Logo"
@@ -623,20 +628,21 @@ function Book() {
         <div 
           className="flip-book-container"
           style={{
-            margin: isMobile ? '0 auto' : '0 30px',
-            boxShadow: isMobile ? 'none' : '0 8px 16px rgba(0,0,0,0.2)',
-            borderRadius: isMobile ? '0' : '8px',
-            overflow: isMobile ? 'hidden' : 'hidden',
+            margin: '0 auto',
+            boxShadow: isMobile ? '0 4px 12px rgba(0,0,0,0.15)' : '0 8px 16px rgba(0,0,0,0.2)',
+            borderRadius: isMobile ? '8px' : '8px',
+            overflow: isMobile ? 'visible' : 'hidden',
             position: 'relative',
             maxWidth: '100%',
             width: isMobile ? `${dimensions.width}px` : 'auto',
             height: isMobile ? `${dimensions.height}px` : 'auto',
-            flex: isMobile ? '0 0 auto' : 'initial',
+            flex: '0 0 auto',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: zoomLevel > 1 ? 'grab' : 'default',
-            touchAction: zoomLevel > 1 ? 'none' : 'auto'
+            touchAction: zoomLevel > 1 ? 'none' : 'auto',
+            backgroundColor: 'white'
           }}
         >
           <div style={{
@@ -652,30 +658,30 @@ function Book() {
         >
           <HTMLFlipBook 
             ref={flipBookRef}
-            width={dimensions.width} 
+            width={isMobile ? dimensions.width / 2 : dimensions.width} 
             height={dimensions.height}
             maxShadowOpacity={0.5}
-            drawShadow={!isMobile}
+            drawShadow={true}
             showCover={false}
             size='stretch'
-            minWidth={dimensions.width}
-            maxWidth={dimensions.width}
+            minWidth={isMobile ? dimensions.width / 2 : dimensions.width}
+            maxWidth={isMobile ? dimensions.width / 2 : dimensions.width}
             minHeight={dimensions.height}
             maxHeight={dimensions.height}
             flippingTime={isMobile ? 600 : 800}
-            usePortrait={isMobile}
+            usePortrait={false}
             startPage={0}
             autoSize={false}
             clickEventForward={zoomLevel <= 1}
-            useMouseEvents={!isMobile || zoomLevel <= 1}
+            useMouseEvents={true}
             swipeDistance={zoomLevel > 1 ? 80 : 30}
-            showPageCorners={!isMobile}
+            showPageCorners={true}
             disableFlipByClick={zoomLevel > 1}
             onFlip={onFlip}
             mobileScrollSupport={zoomLevel <= 1}
             style={{
-              margin: '0',
-              width: isMobile ? '100%' : 'auto',
+              margin: '0 auto',
+              width: isMobile ? `${dimensions.width}px` : 'auto',
               pointerEvents: zoomLevel > 1 ? 'none' : 'auto'
             }}
           >
@@ -898,15 +904,18 @@ function Book() {
             color: '#666',
             fontWeight: '500',
             textAlign: 'center',
-            minWidth: isMobile ? '80px' : '120px',
+            minWidth: isMobile ? '100px' : '120px',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
           }}>
             {isMobile ? (
               <>
-                {`Page ${filteredPages[currentPage] || 1} of ${TOTAL_PAGES}`}
+                {currentPage === 0 
+                  ? `Page ${filteredPages[currentPage] || 1}` 
+                  : `Pages ${currentPage * 2} - ${Math.min(currentPage * 2 + 1, TOTAL_PAGES)}`
+                } / {TOTAL_PAGES}
                 <br />
                 <span style={{ fontSize: '9px', color: '#999' }}>
-                  {zoomLevel > 1 ? 'Zoomed' : 'Tap to flip'}
+                  {zoomLevel > 1 ? 'Zoomed' : 'Swipe to flip'}
                 </span>
               </>
             ) : (

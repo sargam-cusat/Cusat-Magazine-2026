@@ -33,7 +33,7 @@
   /* Make flip book pages fit properly */
   .stf__wrapper,
   .stf__parent {
-    margin: 0 !important;
+    margin: 0 auto !important;
     padding: 0 !important;
   }
   
@@ -43,6 +43,7 @@
     height: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
+    overflow: hidden !important;
   }
   
   .page-content img {
@@ -51,6 +52,12 @@
     object-fit: cover !important;
     margin: 0 !important;
     padding: 0 !important;
+    display: block !important;
+  }
+  
+  /* Center the flip book pages */
+  .stf__block {
+    margin: 0 auto !important;
   }
   
   /* Fixed bottom navigation bar */
