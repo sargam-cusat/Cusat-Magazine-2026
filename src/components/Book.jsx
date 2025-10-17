@@ -345,7 +345,7 @@ function Book() {
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        backgroundColor: '#1a1a1a',
+        backgroundColor: 'white',
         position: 'fixed',
         top: 0,
         left: 0,
@@ -353,71 +353,81 @@ function Book() {
         bottom: 0,
         zIndex: 9999
       }}>
-        {/* Loading animation */}
+        {/* Union Logo */}
+        <img 
+          src="/union logo.png" 
+          alt="Union Logo"
+          style={{
+            width: '150px',
+            height: 'auto',
+            marginBottom: '30px',
+            animation: 'fadeInScale 1.5s ease-in-out'
+          }}
+        />
+        
+        {/* Presents Text */}
         <div style={{
-          fontSize: '48px',
-          fontWeight: 'bold',
-          color: '#3498db',
-          marginBottom: '30px',
+          fontSize: '24px',
+          fontWeight: '600',
+          color: '#2c3e50',
+          marginBottom: '40px',
           textAlign: 'center',
-          animation: 'pulse 2s ease-in-out infinite'
+          letterSpacing: '2px',
+          textTransform: 'uppercase',
+          animation: 'fadeIn 2s ease-in-out 0.5s both'
         }}>
-          Loading Kavaru
+          Presents
         </div>
         
-        {/* Animated dots */}
+        {/* Progress Line */}
         <div style={{
-          display: 'flex',
-          gap: '8px',
+          width: '200px',
+          height: '4px',
+          backgroundColor: '#e0e0e0',
+          borderRadius: '2px',
+          overflow: 'hidden',
           marginBottom: '20px'
         }}>
           <div style={{
-            width: '12px',
-            height: '12px',
-            backgroundColor: '#3498db',
-            borderRadius: '50%',
-            animation: 'bounce 1.4s ease-in-out infinite both'
-          }}></div>
-          <div style={{
-            width: '12px',
-            height: '12px',
-            backgroundColor: '#3498db',
-            borderRadius: '50%',
-            animation: 'bounce 1.4s ease-in-out 0.16s infinite both'
-          }}></div>
-          <div style={{
-            width: '12px',
-            height: '12px',
-            backgroundColor: '#3498db',
-            borderRadius: '50%',
-            animation: 'bounce 1.4s ease-in-out 0.32s infinite both'
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(90deg, #3498db 0%, #2980b9 100%)',
+            borderRadius: '2px',
+            animation: 'progressSlide 3s ease-in-out infinite'
           }}></div>
         </div>
         
         <div style={{
-          fontSize: '16px',
-          color: '#666',
-          textAlign: 'center'
+          fontSize: '14px',
+          color: '#7f8c8d',
+          textAlign: 'center',
+          animation: 'fadeIn 2.5s ease-in-out 1s both'
         }}>
-          Digital Magazine Experience
+          Loading Digital Magazine...
         </div>
         
         {/* CSS animations */}
         <style>{`
-          @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(1.05); }
+          @keyframes fadeInScale {
+            0% { 
+              opacity: 0; 
+              transform: scale(0.8); 
+            }
+            100% { 
+              opacity: 1; 
+              transform: scale(1); 
+            }
           }
           
-          @keyframes bounce {
-            0%, 80%, 100% { 
-              transform: scale(0);
-              opacity: 0.5;
-            }
-            40% { 
-              transform: scale(1);
-              opacity: 1;
-            }
+          @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+          }
+          
+          @keyframes progressSlide {
+            0% { transform: translateX(-100%); }
+            50% { transform: translateX(0%); }
+            100% { transform: translateX(100%); }
           }
         `}</style>
       </div>
@@ -529,30 +539,26 @@ function Book() {
             />
           </div>
 
-          {/* Center Title */}
+          {/* Center Kavaru Logo */}
           <div style={{
             textAlign: 'center',
             order: isMobile ? 1 : 2,
             width: isMobile ? '100%' : 'auto',
-            marginBottom: isMobile ? '15px' : '0'
+            marginBottom: isMobile ? '15px' : '0',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
-            <h1 style={{
-              margin: '0',
-              fontSize: isMobile ? '32px' : '42px',
-              fontWeight: '900',
-              color: '#333',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-              letterSpacing: '2px'
-            }}>
-              കവര്
-            </h1>
-            <p style={{
-              margin: '0',
-              fontSize: isMobile ? '12px' : '14px',
-              color: '#666'
-            }}>
-              Digital Magazine
-            </p>
+            <img 
+              src="/kavaru logo.png"
+              alt="Kavaru Logo"
+              style={{
+                width: 'auto',
+                height: isMobile ? '50px' : '65px',
+                objectFit: 'contain'
+              }}
+            />
           </div>
 
           {/* Students Union Logo */}
