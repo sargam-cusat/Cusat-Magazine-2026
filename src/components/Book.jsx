@@ -75,7 +75,29 @@ function Book() {
           });
         }
       } else {
-        setDimensions({ width: 400, height: 600 });
+        // Desktop: Use same A4 ratio calculation
+        const availableWidth = Math.min(window.innerWidth - 40, 900); // Max 900px width
+        const headerHeight = 100; // Approximate header height on desktop
+        const availableHeight = window.innerHeight - headerHeight - 40;
+        
+        // For two-page layout, each page should be half width
+        const pageWidth = availableWidth / 2;
+        const heightFromWidth = pageWidth * 1.414;
+        
+        if (heightFromWidth <= availableHeight) {
+          // Width is the limiting factor
+          setDimensions({
+            width: availableWidth,
+            height: heightFromWidth
+          });
+        } else {
+          // Height is the limiting factor
+          const pageWidthFromHeight = availableHeight / 1.414;
+          setDimensions({
+            width: pageWidthFromHeight * 2,
+            height: availableHeight
+          });
+        }
       }
     };
 
@@ -634,8 +656,8 @@ function Book() {
             overflow: isMobile ? 'visible' : 'hidden',
             position: 'relative',
             maxWidth: '100%',
-            width: isMobile ? `${dimensions.width}px` : 'auto',
-            height: isMobile ? `${dimensions.height}px` : 'auto',
+            width: `${dimensions.width}px`,
+            height: `${dimensions.height}px`,
             flex: '0 0 auto',
             display: 'flex',
             alignItems: 'center',
@@ -658,14 +680,14 @@ function Book() {
         >
           <HTMLFlipBook 
             ref={flipBookRef}
-            width={isMobile ? dimensions.width / 2 : dimensions.width} 
+            width={dimensions.width / 2} 
             height={dimensions.height}
             maxShadowOpacity={0.5}
             drawShadow={true}
             showCover={false}
             size='stretch'
-            minWidth={isMobile ? dimensions.width / 2 : dimensions.width}
-            maxWidth={isMobile ? dimensions.width / 2 : dimensions.width}
+            minWidth={dimensions.width / 2}
+            maxWidth={dimensions.width / 2}
             minHeight={dimensions.height}
             maxHeight={dimensions.height}
             flippingTime={isMobile ? 600 : 800}
@@ -681,7 +703,7 @@ function Book() {
             mobileScrollSupport={zoomLevel <= 1}
             style={{
               margin: '0 auto',
-              width: isMobile ? `${dimensions.width}px` : 'auto',
+              width: `${dimensions.width}px`,
               pointerEvents: zoomLevel > 1 ? 'none' : 'auto'
             }}
           >
