@@ -13,6 +13,7 @@ function Book() {
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const flipBookRef = useRef();
   
   // Magazine configuration
@@ -55,7 +56,33 @@ function Book() {
   // Mobile detection and resize listener
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      
+      // Calculate dimensions based on available space
+      if (mobile) {
+        const availableWidth = window.innerWidth;
+        const availableHeight = window.innerHeight - 150; // Account for header and bottom bar
+        
+        // Use A4 ratio (1:1.414) but fit to screen
+        const heightFromWidth = availableWidth * 1.414;
+        
+        if (heightFromWidth <= availableHeight) {
+          // Width is the limiting factor
+          setDimensions({
+            width: availableWidth,
+            height: heightFromWidth
+          });
+        } else {
+          // Height is the limiting factor
+          setDimensions({
+            width: availableHeight / 1.414,
+            height: availableHeight
+          });
+        }
+      } else {
+        setDimensions({ width: 400, height: 600 });
+      }
     };
 
     // Check on mount
@@ -75,6 +102,8 @@ function Book() {
     let initialZoom = 1;
     let isZooming = false;
     let startTouchTime = 0;
+    let touchStartX = 0;
+    let touchStartY = 0;
 
     const handleTouchStart = (e) => {
       startTouchTime = Date.now();
@@ -92,7 +121,11 @@ function Book() {
         initialZoom = zoomLevel;
       } else if (e.touches.length === 1 && zoomLevel > 1) {
         // Only start panning if zoomed in
+        e.preventDefault();
+        e.stopPropagation();
         setIsPanning(true);
+        touchStartX = e.touches[0].pageX;
+        touchStartY = e.touches[0].pageY;
         setLastPanPoint({
           x: e.touches[0].pageX,
           y: e.touches[0].pageY
@@ -126,9 +159,15 @@ function Book() {
         const deltaX = e.touches[0].pageX - lastPanPoint.x;
         const deltaY = e.touches[0].pageY - lastPanPoint.y;
         
+        // Calculate max pan based on zoom level and viewport
+        const containerWidth = dimensions.width;
+        const containerHeight = dimensions.height;
+        const maxPanX = (containerWidth * (zoomLevel - 1)) / 2;
+        const maxPanY = (containerHeight * (zoomLevel - 1)) / 2;
+        
         setPanOffset(prev => ({
-          x: prev.x + deltaX,
-          y: prev.y + deltaY
+          x: Math.min(Math.max(prev.x + deltaX, -maxPanX), maxPanX),
+          y: Math.min(Math.max(prev.y + deltaY, -maxPanY), maxPanY)
         }));
         
         setLastPanPoint({
@@ -141,7 +180,7 @@ function Book() {
     const handleTouchEnd = (e) => {
       const touchDuration = Date.now() - startTouchTime;
       
-      // Reset states
+      // Reset panning state
       setIsPanning(false);
       
       // Reset zoom flag after a brief delay
@@ -157,6 +196,7 @@ function Book() {
       flipBookContainer.addEventListener('touchstart', handleTouchStart, { passive: false, capture: true });
       flipBookContainer.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
       flipBookContainer.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
+      flipBookContainer.addEventListener('touchcancel', handleTouchEnd, { passive: false, capture: true });
     }
 
     return () => {
@@ -164,9 +204,28 @@ function Book() {
         flipBookContainer.removeEventListener('touchstart', handleTouchStart, true);
         flipBookContainer.removeEventListener('touchmove', handleTouchMove, true);
         flipBookContainer.removeEventListener('touchend', handleTouchEnd, true);
+        flipBookContainer.removeEventListener('touchcancel', handleTouchEnd, true);
       }
     };
-  }, [zoomLevel, isPanning, lastPanPoint, isMobile]);
+  }, [zoomLevel, isPanning, lastPanPoint, isMobile, dimensions]);
+
+  // Reset pan offset when zoom changes to prevent out of bounds
+  useEffect(() => {
+    if (zoomLevel === 1) {
+      setPanOffset({ x: 0, y: 0 });
+    } else {
+      // Constrain existing pan offset to new zoom limits
+      const containerWidth = dimensions.width;
+      const containerHeight = dimensions.height;
+      const maxPanX = (containerWidth * (zoomLevel - 1)) / 2;
+      const maxPanY = (containerHeight * (zoomLevel - 1)) / 2;
+      
+      setPanOffset(prev => ({
+        x: Math.min(Math.max(prev.x, -maxPanX), maxPanX),
+        y: Math.min(Math.max(prev.y, -maxPanY), maxPanY)
+      }));
+    }
+  }, [zoomLevel, dimensions]);
 
   // Preload and cache images
   useEffect(() => {
@@ -496,10 +555,12 @@ function Book() {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      padding: isMobile ? '10px' : '20px',
+      padding: isMobile ? '0' : '20px',
+      paddingBottom: isMobile ? '0' : '20px',
       minHeight: '100vh',
       backgroundColor: 'white',
-      position: 'relative'
+      position: 'relative',
+      overflow: isMobile ? 'hidden' : 'auto'
     }}>
       {/* Stable container to prevent jumps */}
       <div style={{
@@ -507,119 +568,114 @@ function Book() {
         flexDirection: 'column',
         alignItems: 'center',
         width: '100%',
-        maxWidth: isMobile ? '100%' : '900px'
+        maxWidth: isMobile ? '100%' : '900px',
+        height: isMobile ? '100vh' : 'auto',
+        paddingBottom: isMobile ? '60px' : '0'
       }}>
         {/* Header with university logos */}
         <div style={{
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'center',
           alignItems: 'center',
           width: '100%',
-          padding: isMobile ? '15px 20px' : '20px 30px',
+          padding: isMobile ? '10px 12px' : '20px 30px',
           backgroundColor: 'white',
           borderBottom: '2px solid #f0f0f0',
-          marginBottom: '20px',
-          flexWrap: isMobile ? 'wrap' : 'nowrap'
+          marginBottom: isMobile ? '5px' : '20px',
+          flexShrink: 0,
+          gap: isMobile ? '20px' : '40px'
         }}>
           {/* Cochin University Logo */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            order: isMobile ? 2 : 1
-          }}>
-            <img 
-              src="/University logo.png"
-              alt="Cochin University Logo"
-              style={{
-                width: 'auto',
-                height: isMobile ? '50px' : '65px',
-                objectFit: 'contain'
-              }}
-            />
-          </div>
-
-          {/* Center Kavaru Logo */}
-          <div style={{
-            textAlign: 'center',
-            order: isMobile ? 1 : 2,
-            width: isMobile ? '100%' : 'auto',
-            marginBottom: isMobile ? '15px' : '0',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <img 
-              src="/kavaru logo.png"
-              alt="Kavaru Logo"
-              style={{
-                width: 'auto',
-                height: isMobile ? '50px' : '65px',
-                objectFit: 'contain'
-              }}
-            />
-          </div>
-
+          <img 
+            src="/University logo.png"
+            alt="Cochin University Logo"
+            style={{
+              width: 'auto',
+              height: isMobile ? '40px' : '65px',
+              objectFit: 'contain'
+            }}
+          />
+          
+          {/* Kavaru Logo - Center */}
+          <img 
+            src="/kavaru logo.png"
+            alt="Kavaru Logo"
+            style={{
+              width: 'auto',
+              height: isMobile ? '45px' : '70px',
+              objectFit: 'contain'
+            }}
+          />
+          
           {/* Students Union Logo */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            order: isMobile ? 3 : 3
-          }}>
-            <img 
-              src="/union logo.png"
-              alt="Students Union Logo"
-              style={{
-                width: 'auto',
-                height: isMobile ? '50px' : '65px',
-                objectFit: 'contain'
-              }}
-            />
-          </div>
+          <img 
+            src="/union logo.png"
+            alt="Students Union Logo"
+            style={{
+              width: 'auto',
+              height: isMobile ? '40px' : '65px',
+              objectFit: 'contain'
+            }}
+          />
         </div>
 
         {/* Flip Book Container with margins */}
         <div 
           className="flip-book-container"
           style={{
-            margin: isMobile ? '0 10px' : '0 30px',
-            boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
-            borderRadius: '8px',
-            overflow: 'hidden',
+            margin: isMobile ? '0 auto' : '0 30px',
+            boxShadow: isMobile ? 'none' : '0 8px 16px rgba(0,0,0,0.2)',
+            borderRadius: isMobile ? '0' : '8px',
+            overflow: isMobile ? 'hidden' : 'hidden',
             position: 'relative',
-            maxWidth: isMobile ? '100%' : 'none',
-            transform: `scale(${zoomLevel}) translate(${panOffset.x}px, ${panOffset.y}px)`,
+            maxWidth: '100%',
+            width: isMobile ? `${dimensions.width}px` : 'auto',
+            height: isMobile ? `${dimensions.height}px` : 'auto',
+            flex: isMobile ? '0 0 auto' : 'initial',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: zoomLevel > 1 ? 'grab' : 'default',
+            touchAction: zoomLevel > 1 ? 'none' : 'auto'
+          }}
+        >
+          <div style={{
+            transform: `scale(${zoomLevel}) translate(${panOffset.x / zoomLevel}px, ${panOffset.y / zoomLevel}px)`,
             transformOrigin: 'center center',
             transition: isPanning ? 'none' : 'transform 0.2s ease',
-            cursor: zoomLevel > 1 ? 'grab' : 'default'
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
           <HTMLFlipBook 
             ref={flipBookRef}
-            width={isMobile ? window.innerWidth - 40 : 400} 
-            height={isMobile ? (window.innerWidth - 40) * 1.4 : 600}
+            width={dimensions.width} 
+            height={dimensions.height}
             maxShadowOpacity={0.5}
-            drawShadow={true}
+            drawShadow={!isMobile}
             showCover={false}
             size='stretch'
-            minWidth={isMobile ? 280 : 400}
-            maxWidth={isMobile ? window.innerWidth - 40 : 400}
-            minHeight={isMobile ? 400 : 600}
-            maxHeight={isMobile ? (window.innerWidth - 40) * 1.4 : 600}
-            flippingTime={800}
+            minWidth={dimensions.width}
+            maxWidth={dimensions.width}
+            minHeight={dimensions.height}
+            maxHeight={dimensions.height}
+            flippingTime={isMobile ? 600 : 800}
             usePortrait={isMobile}
             startPage={0}
             autoSize={false}
             clickEventForward={zoomLevel <= 1}
             useMouseEvents={!isMobile || zoomLevel <= 1}
-            swipeDistance={zoomLevel > 1 ? 50 : 30}
-            showPageCorners={true}
+            swipeDistance={zoomLevel > 1 ? 80 : 30}
+            showPageCorners={!isMobile}
             disableFlipByClick={zoomLevel > 1}
             onFlip={onFlip}
+            mobileScrollSupport={zoomLevel <= 1}
             style={{
-              margin: '0 auto',
+              margin: '0',
+              width: isMobile ? '100%' : 'auto',
               pointerEvents: zoomLevel > 1 ? 'none' : 'auto'
             }}
           >
@@ -649,72 +705,102 @@ function Book() {
               );
             })}
           </HTMLFlipBook>
+          </div>
         </div>
 
-        {/* Zoom Controls (Mobile Only) */}
+        {/* Zoom Controls (Mobile Only) - Improved UI/UX */}
         {isMobile && (
           <div style={{
             display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '10px',
-            marginTop: '15px',
-            padding: '10px',
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            borderRadius: '20px',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+            flexDirection: 'column',
+            gap: '8px',
+            position: 'fixed',
+            right: '15px',
+            bottom: '80px',
+            zIndex: 1000
           }}>
+            {/* Zoom In Button */}
             <button
               onClick={() => {
-                const newZoom = Math.max(zoomLevel - 0.25, 1);
+                const newZoom = Math.min(zoomLevel + 0.5, 3);
                 setZoomLevel(newZoom);
-                if (newZoom === 1) setPanOffset({ x: 0, y: 0 });
               }}
               style={{
-                padding: '8px 12px',
-                backgroundColor: 'transparent',
-                border: '1px solid #ddd',
+                padding: '0',
+                backgroundColor: zoomLevel < 3 ? '#3498db' : '#cbd5e0',
+                color: 'white',
+                border: 'none',
                 borderRadius: '50%',
                 cursor: 'pointer',
-                fontSize: '16px',
-                color: '#333',
+                fontSize: '22px',
+                fontWeight: 'bold',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
-              }}
-              disabled={zoomLevel <= 1}
-            >
-              −
-            </button>
-            
-            <span style={{
-              fontSize: '14px',
-              color: '#666',
-              minWidth: '60px',
-              textAlign: 'center'
-            }}>
-              {Math.round(zoomLevel * 100)}%
-            </span>
-            
-            <button
-              onClick={() => setZoomLevel(Math.min(zoomLevel + 0.25, 3))}
-              style={{
-                padding: '8px 12px',
-                backgroundColor: 'transparent',
-                border: '1px solid #ddd',
-                borderRadius: '50%',
-                cursor: 'pointer',
-                fontSize: '16px',
-                color: '#333',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                width: '48px',
+                height: '48px',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 12px rgba(52, 152, 219, 0.4)',
+                transform: zoomLevel < 3 ? 'scale(1)' : 'scale(0.9)',
+                opacity: zoomLevel < 3 ? 1 : 0.5
               }}
               disabled={zoomLevel >= 3}
+              aria-label="Zoom in"
             >
               +
             </button>
             
+            {/* Zoom Level Indicator */}
+            <div style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '24px',
+              padding: '6px 12px',
+              textAlign: 'center',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+              fontSize: '11px',
+              fontWeight: '600',
+              color: '#333',
+              minWidth: '48px'
+            }}>
+              {Math.round(zoomLevel * 100)}%
+            </div>
+            
+            {/* Zoom Out Button */}
+            <button
+              onClick={() => {
+                const newZoom = Math.max(zoomLevel - 0.5, 1);
+                setZoomLevel(newZoom);
+                if (newZoom === 1) {
+                  setPanOffset({ x: 0, y: 0 });
+                }
+              }}
+              style={{
+                padding: '0',
+                backgroundColor: zoomLevel > 1 ? '#3498db' : '#cbd5e0',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                fontSize: '26px',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '48px',
+                height: '48px',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 12px rgba(52, 152, 219, 0.4)',
+                transform: zoomLevel > 1 ? 'scale(1)' : 'scale(0.9)',
+                opacity: zoomLevel > 1 ? 1 : 0.5
+              }}
+              disabled={zoomLevel <= 1}
+              aria-label="Zoom out"
+            >
+              −
+            </button>
+            
+            {/* Reset Button (Only when zoomed) */}
             {zoomLevel > 1 && (
               <button
                 onClick={() => {
@@ -722,15 +808,22 @@ function Book() {
                   setPanOffset({ x: 0, y: 0 });
                 }}
                 style={{
-                  padding: '6px 12px',
-                  backgroundColor: '#3498db',
+                  padding: '8px 12px',
+                  backgroundColor: '#e74c3c',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '15px',
+                  borderRadius: '20px',
                   cursor: 'pointer',
-                  fontSize: '12px',
-                  marginLeft: '5px'
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 12px rgba(231, 76, 60, 0.4)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  marginTop: '4px',
+                  animation: 'fadeInScale 0.3s ease'
                 }}
+                aria-label="Reset zoom"
               >
                 Reset
               </button>
@@ -745,8 +838,19 @@ function Book() {
           alignItems: 'center',
           width: '100%',
           maxWidth: isMobile ? '100%' : '500px',
-          marginTop: '20px',
-          padding: isMobile ? '0 20px' : '0 30px'
+          marginTop: isMobile ? 'auto' : '20px',
+          marginBottom: isMobile ? '0' : '0',
+          padding: isMobile ? '12px 20px' : '0 30px',
+          flexShrink: 0,
+          position: isMobile ? 'fixed' : 'relative',
+          bottom: isMobile ? '0' : 'auto',
+          left: isMobile ? '0' : 'auto',
+          right: isMobile ? '0' : 'auto',
+          backgroundColor: isMobile ? 'rgba(255, 255, 255, 0.98)' : 'transparent',
+          backdropFilter: isMobile ? 'blur(10px)' : 'none',
+          boxShadow: isMobile ? '0 -2px 10px rgba(0, 0, 0, 0.1)' : 'none',
+          borderTop: isMobile ? '1px solid #e5e7eb' : 'none',
+          zIndex: isMobile ? 1000 : 'auto'
         }}>
           <button
             onClick={goToPrevPage}
@@ -764,8 +868,8 @@ function Book() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: isMobile ? '44px' : '48px',
-              height: isMobile ? '44px' : '48px',
+              width: isMobile ? '42px' : '48px',
+              height: isMobile ? '42px' : '48px',
               boxShadow: 'none',
               opacity: (zoomLevel > 1 && isMobile) ? 0.5 : 1
             }}
@@ -790,7 +894,7 @@ function Book() {
           
           {/* Page Counter in the middle */}
           <div style={{
-            fontSize: isMobile ? '12px' : '14px',
+            fontSize: isMobile ? '11px' : '14px',
             color: '#666',
             fontWeight: '500',
             textAlign: 'center',
@@ -801,8 +905,8 @@ function Book() {
               <>
                 {`Page ${filteredPages[currentPage] || 1} of ${TOTAL_PAGES}`}
                 <br />
-                <span style={{ fontSize: '10px', color: '#999' }}>
-                  {zoomLevel > 1 ? 'Zoomed View' : 'Mobile View'}
+                <span style={{ fontSize: '9px', color: '#999' }}>
+                  {zoomLevel > 1 ? 'Zoomed' : 'Tap to flip'}
                 </span>
               </>
             ) : (
@@ -826,8 +930,8 @@ function Book() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: isMobile ? '44px' : '48px',
-              height: isMobile ? '44px' : '48px',
+              width: isMobile ? '42px' : '48px',
+              height: isMobile ? '42px' : '48px',
               boxShadow: 'none',
               opacity: (zoomLevel > 1 && isMobile) ? 0.5 : 1
             }}
@@ -849,29 +953,20 @@ function Book() {
           >
             <ChevronRight size={isMobile ? 18 : 20} strokeWidth={2.5} style={{ pointerEvents: 'none' }} />
           </button>
-        </div>      {/* Helper tip */}
-      <div style={{
-        marginTop: '15px',
-        fontSize: '12px',
-        color: '#999',
-        textAlign: 'center'
-      }}>
-        {isMobile ? (
-          zoomLevel > 1 ? (
-            <>
-              💡 Drag to pan • Zoom out to flip pages • Use zoom controls below
-            </>
-          ) : (
-            <>
-              💡 Pinch to zoom • Swipe to flip pages • Use arrow buttons below
-            </>
-          )
-        ) : (
-          <>
-            💡 Click page corners or drag to flip pages
-          </>
-        )}
-      </div>
+        </div>      {/* Helper tip - Only show on desktop */}
+      {!isMobile && (
+        <div style={{
+          marginTop: '15px',
+          marginBottom: '0',
+          fontSize: '12px',
+          color: '#999',
+          textAlign: 'center',
+          padding: '0',
+          flexShrink: 0
+        }}>
+          💡 Click page corners or drag to flip pages
+        </div>
+      )}
       </div>
     </div>
   );

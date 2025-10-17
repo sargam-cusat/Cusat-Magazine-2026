@@ -34,6 +34,36 @@ body {
   height: 100%;
   min-height: 100vh;
   background-color: white;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 768px) {
+  html,
+  body {
+    overflow: hidden;
+    position: fixed;
+    touch-action: pan-y pinch-zoom;
+    -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Allow text selection for text elements only */
+  p, span, div[contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
 }
 
 #root {
@@ -41,6 +71,7 @@ body {
   height: 100%;
   min-height: 100vh;
   background-color: white;
+  overflow: hidden;
 }
 
 /* Override any conflicting styles */
